@@ -1,3 +1,11 @@
+/*
+Liseth ....
+Juan Manuel Moreno - 2417575
+Juan David Lopez Vanegas - 2243077
+Grosman Klein Garcia Valencia - 2340247
+
+*/
+
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -7,19 +15,26 @@ using namespace std;
     
 
 int accumulator = 0;
-string MDR = "";
 int MAR = 0;
-string ICR = "";
 int PC = 0;
-string UC = "";
 int ALU = 0;
 int theMostGreatest = 0;
+string MDR = "";
+string ICR = "";
+string UC = "";
 
 /*
 void setTheMostGreatest(int newValue) {
     theMostGreatest = newValue;
 }
 */
+
+void printMainMemory(string* mainMemory, int size) {
+    for(int i = 0; i < (theMostGreatest+size); i++) {
+        cout << "Linea " << i << ":" << mainMemory[i] <<endl;
+    }
+}
+
 
 int getAddress(string lineToAnalize) {
     int address;
@@ -35,143 +50,169 @@ int getAddress(string lineToAnalize) {
     return address;
 }
 
+
 int getValue2(string lineToAnalize) {
     int value2;
-    if(lineToAnalize[8] == ' ') {
-        /*
-        En el codigo ascii los numeros no son representados con su valor. Ejemplo : el '1' en ascci es 49
-        */
-        value2 = lineToAnalize[7] - '0';
-    }
-    else {
-        value2 = stoi(lineToAnalize.substr(7,2));
-    }
+
+    // Encontramos el inicio de la segunda dirección en la instrucción
+    size_t startPos = lineToAnalize.find(' ', lineToAnalize.find(' ') + 1) + 1;
+
+    // Buscamos el siguiente espacio para encontrar el final de la segunda dirección
+    size_t endPos = lineToAnalize.find(' ', startPos);
+
+    // Extraemos la subcadena que corresponde a la segunda dirección
+    string valueStr = lineToAnalize.substr(startPos, endPos - startPos);
+
+    // Convertimos la subcadena a un valor numérico
+    value2 = stoi(valueStr);
+
     return value2;
 }
 
+int getValue3(string lineToAnalize) {
+    int value3;
+    
+    // Determinar el punto de inicio para extraer la tercera dirección
+    int startPos = lineToAnalize.find(' ', lineToAnalize.find(' ', lineToAnalize.find(' ') + 1) + 1) + 1;
+    
+    // Caso 1: Si la dirección es de un solo dígito, extraer directamente
+    if (lineToAnalize[startPos + 1] == ' ' || lineToAnalize[startPos + 2] == ' ') {
+        value3 = lineToAnalize[startPos] - '0';
+    }
+    // Caso 2: Si la dirección tiene dos dígitos
+    else {
+        value3 = stoi(lineToAnalize.substr(startPos, 2));
+    }
+    
+    return value3;
+}
 
 void theBigger(string lineToAnalize) {
-    
     int newBigger = getAddress(lineToAnalize);
     if(newBigger > theMostGreatest) {
         theMostGreatest = newBigger;
     }
-    
-    /*
-    // Verificar que la línea tenga al menos 6 caracteres
-    if (lineToAnalize.length() > 5 && lineToAnalize[6] == ' ' ) {
-        char numChar = lineToAnalize[5];
-        
-
-
-        // Verificar si el carácter es un dígito
-        if (isdigit(numChar)) {
-            int newBigger = numChar - '0'; // Convertir el carácter a un número
-
-            if (theMostGreatest < newBigger) {
-                // Actualizar si es mayor
-                theMostGreatest = newBigger;
-            }
-        }
-    }
-    else {
-        int numChar = stoi(lineToAnalize.substr(5,2));
-        if(numChar > theMostGreatest) {
-            theMostGreatest = numChar;
-        }
-    }
-    */
 }
-
 
 void SET(string* mainMemory,string lineToAnalize) {
     int address = getAddress(lineToAnalize);
     int value = getValue2(lineToAnalize);
-    mainMemory[address] = value;
+    mainMemory[address] = to_string(value);
 }
 
-void LDR(int address, string* mainMemory) {
-    accumulator = stoi(mainMemory[address]);
-}
-
-
-void ADD(int address1, int address2 , int address3, string* mainMemory) {
-    if(mainMemory[address1].empty()) {
-        cout << "Esta mal" << endl;
-    }
-    else if(mainMemory[address2].empty()) {
-        accumulator = stoi(mainMemory[address1]);
-    }
-    else if(mainMemory[address3].empty()) {
-        accumulator = stoi(mainMemory[address1]) + stoi(mainMemory[address2]);
-    }
-    else {
-        mainMemory[address3] = stoi(mainMemory[address1]) + stoi(mainMemory[address2]);
-    }
+void LDR(string* mainMemory,string lineToAnalize) {
+    int address = getAddress(lineToAnalize);
+    MAR = address;
+    MDR = mainMemory[address];
+    accumulator = stoi(MDR);
 }
 
 
-void INC(int address, string* mainMemory) {
-    int var = stoi(mainMemory[address]);
-    mainMemory[address] = var++;
+void ADD(string* mainMemory, string lineToAnalize) {
+    int address = getAddress(lineToAnalize);
+    // Case 1: ADD D1 NULL NULL
+    ALU = accumulator;
+    accumulator = 0;
+
+    //ADD D3 NULL NULL
+    MAR = address;           // El MAR toma la dirección de la siguiente instrucción (PC).
+    MDR = mainMemory[MAR];  // La instrucción en la memoria se carga en el MDR.
+    accumulator = stoi(MDR);
+    ALU += accumulator;
+    accumulator = ALU;
+    ALU = 0;
+
 }
 
-void DEC(int address, string* mainMemory) {
-    int var = stoi(mainMemory[address]);
-    mainMemory[address] = var--;
-}
 
-void STR(int address, string* mainMemory) {
-    mainMemory[address] = accumulator;
-}
-
-//esto esta comentando por un error que me sale, aun no se
+//INC D3 NULL NULL
 /*
-void SHW(int address = -1,string* mainMemory, string command = "") {
-    string possibleCommands[] = {"ACC","MAR","MDR","UC","ICR"}; 
-    int opc;
-    if(address == -1) {
-        for(int i = 0; i < 5; i++) {
-            if(command == possibleCommands[i]) {
-                opc = i;
-            }
-        }
-        switch(opc) {
-            case 1:
-                    cout << accumulator << endl;
-                    break;
-            case 2:
-                    cout << MAR << endl;
-                    break;
-            case 3:
-                    cout << MDR << endl;
-                    break;
-            case 4:
-                    cout << UC << endl;
-                    break;
-            case 5:
-                    cout << ICR << endl;
-                    break;
-        }
-    }
-    else {
-        cout << mainMemory[address] << endl;
-    }
-}
+Supongamos que estamos ya con la instruccion en el Unit Control, 
+entocnes de ahi si dice que carga, entonces esa direccion, 
+3 en este caso se la psaria al MAR, despues el MDR iria a esa direccion y 
+buscaria el valor que hay guardado ahi y lo cargaria en el acumulador y despues se
+lo pasaria a la ALU y despues ahi quien le incrementa uno o que. 
 */
-
-void PAUSE() {
-    cout << "Accumulator: " << accumulator << "\n" 
-    << "MAR: " << MAR << "\n"
-    << "MDR: "<< MDR << "\n"
-    << "UC: " << UC << "\n" 
-    << "ICR: " << ICR << "\n";
+void INC(string* mainMemory, string lineToAnalize) {
+    int address = getAddress(lineToAnalize);
+    MAR = address;
+    MDR = mainMemory[address];
+    accumulator = stoi(MDR);
+    ALU = accumulator + 1;
+    MDR = ALU;
+    ALU = 0;
+    mainMemory[address] = MDR;
 }
+
+void DEC(string* mainMemory, string lineToAnalize) {
+    int address = getAddress(lineToAnalize);  // Obtener la dirección de memoria
+    MAR = address;                            // Cargar la dirección en MAR
+    MDR = mainMemory[address];                // Cargar el valor de la memoria en MDR
+    accumulator = stoi(MDR);                  // Cargar el valor de MDR en el acumulador
+    ALU = accumulator - 1;                    // Restar 1 en la ALU
+    MDR = to_string(ALU);                     // Convertir el resultado de ALU a string
+    ALU = 0;                                  // Limpiar ALU
+    mainMemory[address] = MDR;                // Almacenar el resultado en la memoria
+}
+
+
+//Lee el valor del acumulador y lo asigna a la dirección de memoria que se le pasa
+void STR(string* mainMemory, string lineToAnalize) {
+    int address = getAddress(lineToAnalize);
+
+    MAR = address;
+    MDR = to_string(accumulator);
+    mainMemory[MAR] = MDR;                  
+}
+
+/*Muestra el valor dependiendo del comando que siga a SHW, por ej: 
+-SHW D3 muestra el valor que esté guardado en la dirección D3
+-SHW ACC muestra el valor asignado al acumulador en el momento de consulta
+-SHW ICR muestra el valor del Contador de Registro de Instrucción
+-SHW MAR muestra el valor en el Registro de Dirección de Memoria
+*/
+void SHW(string* mainMemory, string lineToAnalize) {
+    string command = lineToAnalize.substr(4, 3);
+    
+    if(command == "ACC"){
+        cout << "Accumulator: " << accumulator << endl;
+    }
+    else if(command == "ICR"){
+        cout << "ICR: " << ICR << endl;
+    }
+    else if(command == "MAR"){
+        cout << "MAR: " << MAR << endl;
+    }
+    else if(command == "MDR"){
+        cout << "MDR: " << MDR << endl;
+    }
+    else if(command == "UC"){
+        cout << "UC: " << UC << endl;
+    }
+    else if(command[0] == 'D'){
+        int address = getAddress(lineToAnalize);
+        cout << "Memory [" << address << "]: " << mainMemory[address] << endl;
+    }
+    else{
+        cout << "Comando SHW inválido." << endl;
+    } 
+}
+
 
 void END() {
     cout << "Se acabo" << endl;
 }
 
+
+void PAUSE() {
+    cout << "Estado del sistema:\n";
+    cout << "Acumulador: " << accumulator << endl;
+    cout << "MAR: " << MAR << endl;
+    cout << "MDR: " << MDR << endl;
+    cout << "PC: " << PC << endl;
+    cout << "ICR: " << ICR << endl;
+    cout << "UC: " << UC << endl;
+}
 
 
 int main(int argc, char *argv[]) {
@@ -195,30 +236,74 @@ int main(int argc, char *argv[]) {
 
     cout << theMostGreatest;
 
-    string *mainMemory = new string[theMostGreatest+size]; 
-    for(int i = 0; i < size; i++) {
+    //8 (en 0) + 9 (instrucciones) = 17
+    /*
+    Aqui lo que pasa es theMostGreates me da el numero mas grande que acompaña la primera D en mi arreglo
+    program, pero entonces si creo un arreglo de 8 posiciones el solo irira de 0-7, y necesito que tambien
+    tenga en cuenta la direccion 8 porque ahi voy a almacenar algo por algo es el mas grande. entocnes por eso 
+    le sumo 1 para tener en cuenta esa posicion. Ademas el size es la cantidad de instrucciones*/
+    string *mainMemory = new string[theMostGreatest+1+size]; 
+    for(int i = 0; i < theMostGreatest+1; i++) {
         mainMemory[i] = "0";
+    }
+    for(int i = 0; i < size; i++) {
+        mainMemory[i+8] = program[i];
     }
 
     /*
     Esto porque cuando creamos nuestro arreglo se decidio que ibamos a buscar el D acompañado del numero más
-    grande, entonces ese numero + la cantidad de instrucciones es el tamaño del mainMemory.
+    grande, entonces ese numero + 1 + la cantidad de instrucciones es el tamaño del mainMemory.
     Pero entonces como el numero mas grande es el total de espacio en blaco que vamos a dejar para ir almacenando
     los valores que retornen las instruccion, por eso me paro en el theMostGreatest
     */
-    PC = theMostGreatest;
+    PC = theMostGreatest; // aqui hice un enredo grande, la cosa esque ya no le sumo uno porque me sirve para el siguiente for que no este tan adelantado
     
     //aca estoy intentando implementar la logica de la CPU
     
     for(int i=0; i < size; i++) {
         if(program[i].substr(0,3) == "SET") {
             SET(mainMemory, program[i]);
+            PC++;
         }
         else {
-            //MAR = PC;
-            cout << "Lineas aparte del SET\nLogica por implementar" << endl;
+            cout << "Entro #" << i << ": " << endl;
+            MAR = PC;
+            MDR = mainMemory[MAR].substr(0,3);
+            ICR = MDR;
+            PC++;
+            UC = ICR;
+            PAUSE();
+            if(UC == "LDR") {
+                LDR(mainMemory,program[i]);
+                PAUSE();
+            }
+            else if(UC == "ADD") {
+                ADD(mainMemory, program[i]);
+            }
+            else if(UC == "STR") {
+                STR(mainMemory, program[i]);
+                
+            }
+            else if(UC == "SHW") {
+                SHW(mainMemory, program[i]);
+            }          
+            else if(UC == "DEC") {
+                DEC(mainMemory, program[i]);
+            }
+            else if(UC == "INC") {
+                INC(mainMemory, program[i]);
+            }
+            else if(UC == "END") {
+                END();
+            }
+            else {
+                cout <<" no paso nada" << endl;
+            }
         }
     }
-    
+
+    printMainMemory(mainMemory,size);
+
+    delete[] mainMemory;
 
 }
